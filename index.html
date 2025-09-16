@@ -3,112 +3,427 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ADHD ↔ Dissociation Episode Tracker</title>
+  <title>ADHD ↔ Dissociation Episode Tracker — Therapy Companion</title>
+  <meta name="description" content="Private, client-side tracker to help differentiate inattentive ADHD lapses from dissociative episodes, with therapy-focused fields and weekly summaries."/>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='14' fill='%238b5cf6'/%3E%3Cg fill='%23fff'%3E%3Cpath d='M20 20h24v6H20zM20 30h24v6H20zM20 40h16v6H20z'/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={theme:{extend:{}}};</script>
   <style>
-    body { font-family: system-ui, sans-serif; }
-    .card { background: white; border:1px solid #ddd; border-radius: 1rem; padding:1rem; }
-    @media (prefers-color-scheme: dark) {
-      body { background:#111; color:#eee; }
-      .card { background:#1c1c1c; border-color:#333; }
+    :root { color-scheme: light dark; }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    .card { background: color-mix(in oklab, white 82%, transparent); border: 1px solid rgb(228 228 231); border-radius: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+    @media (prefers-color-scheme: dark) { .card { background: color-mix(in oklab, rgb(24 24 27) 65%, transparent); border-color: rgb(39 39 42); } }
+    .btn { display:inline-flex; align-items:center; justify-content:center; border-radius: .75rem; padding: .5rem .75rem; font-size:.875rem; border:1px solid rgb(212 212 216); transition:.15s; }
+    .btn:hover { background: rgba(0,0,0,.05); }
+    .btn-primary { background: rgb(24 24 27); color:white; border-color: transparent; }
+    @media (prefers-color-scheme: dark) { .btn-primary { background: white; color: rgb(24 24 27); } }
+    .kpi { font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; color: rgb(113 113 122); }
+    .pill { font-size:.75rem; padding:.25rem .5rem; border-radius:9999px; border:1px solid rgb(212 212 216); }
+    .tag { font-size:.75rem; padding:.25rem .5rem; border-radius:.75rem; background: rgb(244 244 245); }
+    @media (prefers-color-scheme: dark) { .tag { background: rgb(39 39 42); }
     }
-    .btn { padding:0.4rem 0.8rem; border:1px solid #ccc; border-radius:0.5rem; font-size:0.9rem; }
-    .btn-primary { background:#111; color:#fff; border:none; }
-    @media (prefers-color-scheme: dark) { .btn-primary { background:#fff; color:#111; } }
-    .pill { padding:0.2rem 0.5rem; border-radius:9999px; border:1px solid #ccc; font-size:0.75rem; }
+    .grid-2 { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+    .grid-3 { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+    @media (max-width: 1024px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    .input { border-radius: 0.75rem; border:1px solid rgb(212 212 216); background: color-mix(in oklab, white 70%, transparent); padding: .5rem .75rem; }
+    @media (prefers-color-scheme: dark) { .input { background: color-mix(in oklab, rgb(24 24 27) 40%, transparent); border-color: rgb(63 63 70);} }
+    .section-title { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
   </style>
 </head>
-<body class="p-4 max-w-6xl mx-auto space-y-6">
-  <h1 class="text-2xl font-semibold">ADHD ↔ Dissociation Tracker</h1>
-  <p class="text-sm text-gray-500">Data stays in your browser. Export/Import manually if needed.</p>
-
-  <!-- Log Form -->
-  <section class="card">
-    <h2 class="text-lg font-semibold mb-2">Log an Episode</h2>
-    <form id="entryForm" class="space-y-3">
-      <input id="dt" type="datetime-local" class="border rounded p-1 w-full">
-      <input id="context" placeholder="Context" class="border rounded p-1 w-full">
-      <input id="triggers" placeholder="Triggers" class="border rounded p-1 w-full">
-      <textarea id="notes" placeholder="Notes" class="border rounded p-1 w-full"></textarea>
-      <div class="flex gap-2 flex-wrap">
-        <label>Ext Distract <input id="extDistract" type="range" min="0" max="10"></label>
-        <label>Dereal <input id="dereal" type="range" min="0" max="10"></label>
-        <label>Gap (min)<input id="gap" type="number" value="0" min="0"></label>
-        <label>Restless <input id="restless" type="range" min="0" max="10"></label>
-        <label>Numb <input id="numbness" type="range" min="0" max="10"></label>
+<body class="bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900 min-h-screen text-zinc-900 dark:text-zinc-100">
+  <header class="max-w-7xl mx-auto p-4 sm:p-6">
+    <div class="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-semibold">ADHD ↔ Dissociation Tracker <span class="text-zinc-400 text-base">• Therapy Companion</span></h1>
+        <p class="text-zinc-600 dark:text-zinc-400 mt-1">All data stays <strong>local</strong> in your browser (localStorage). Export/Import to move across devices or GitHub Pages.</p>
       </div>
-      <button type="button" id="classify" class="btn">Classify</button>
-      <button type="submit" class="btn-primary">Save</button>
-      <span id="classResult" class="ml-2 text-sm"></span>
-    </form>
-  </section>
-
-  <!-- Weekly Summary -->
-  <section class="card">
-    <h2 class="text-lg font-semibold mb-2">Weekly Summary</h2>
-    <div id="weekSummary" class="text-sm text-gray-700"></div>
-    <button id="genNotes" class="btn mt-2">Generate Notes</button>
-    <textarea id="notesOut" class="border rounded p-1 w-full mt-2" rows="4"></textarea>
-  </section>
-
-  <!-- Threshold Tuning -->
-  <section class="card">
-    <h2 class="text-lg font-semibold mb-2">Classifier Thresholds</h2>
-    <div class="grid grid-cols-2 gap-2">
-      <label>ADHD ext ≥ <input id="t_ext" type="number" min="0" max="10"></label>
-      <label>ADHD rest ≥ <input id="t_rest" type="number" min="0" max="10"></label>
-      <label>ADHD dereal ≤ <input id="t_dereal_max" type="number" min="0" max="10"></label>
-      <label>ADHD gap ≤ <input id="t_gap_max" type="number"></label>
-      <label>Dissoc dereal ≥ <input id="t_dereal" type="number" min="0" max="10"></label>
-      <label>Dissoc numb ≥ <input id="t_numb" type="number" min="0" max="10"></label>
-      <label>Dissoc gap ≥ <input id="t_gap" type="number"></label>
+      <div class="flex flex-wrap gap-2">
+        <button id="exportJson" class="btn">Export JSON</button>
+        <button id="exportCsv" class="btn">Export CSV</button>
+        <label class="btn cursor-pointer"><input id="importFile" type="file" accept=".json" class="hidden"/>Import JSON</label>
+        <button id="wipeAll" class="btn" style="color:#dc2626;border-color:#fecaca">Delete All</button>
+      </div>
     </div>
-    <button id="saveThresholds" class="btn-primary mt-2">Save thresholds</button>
-  </section>
+  </header>
 
-  <!-- Log Table -->
-  <section class="card">
-    <h2 class="text-lg font-semibold mb-2">Your Log</h2>
-    <table class="w-full text-sm">
-      <thead><tr><th>When</th><th>Context</th><th>Type</th><th>Why</th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </section>
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 grid lg:grid-cols-3 gap-6">
+    <!-- Episode Form -->
+    <section class="card p-4 sm:p-6 lg:col-span-2">
+      <div class="section-title">
+        <h2 class="text-lg font-semibold">Log an episode</h2>
+        <span class="kpi">Classifier is heuristic — not diagnostic</span>
+      </div>
+      <form id="entryForm" class="mt-4 space-y-4">
+        <div class="grid-3">
+          <label class="block"><span class="kpi">Date & time</span><input id="dt" type="datetime-local" class="input w-full"/></label>
+          <label class="block"><span class="kpi">Context</span>
+            <select id="context" class="input w-full">
+              <option>Work</option><option>Home</option><option>Social</option><option>Transit</option><option>Therapy</option><option>Other</option>
+            </select>
+          </label>
+          <label class="block"><span class="kpi">Part/State most present (optional)</span>
+            <input id="part" type="text" placeholder="e.g., Ivy / Doll / Protector" class="input w-full"/>
+          </label>
+        </div>
 
-<script>
-const LS_KEY="adhd_dissoc_log_v1", LS_THRESH="adhd_dissoc_thresh_v1";
-function loadAll(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[]}catch{return[]}}
-function saveAll(l){localStorage.setItem(LS_KEY,JSON.stringify(l))}
-function defT(){return{t_ext:6,t_rest:6,t_dereal_max:3,t_gap_max:2,t_dereal:6,t_numb:6,t_gap:10}}
-function loadT(){return{...defT(),...(JSON.parse(localStorage.getItem(LS_THRESH))||{})}}
-function saveT(t){localStorage.setItem(LS_THRESH,JSON.stringify(t))}
-function classify(e,T){const ext=+e.extDistract,dereal=+e.dereal,gap=+e.gap,numb=+e.numbness,rest=+e.restless;
- const adhd=(ext>=T.t_ext||rest>=T.t_rest)&&dereal<=T.t_dereal_max&&gap<=T.t_gap_max;
- const diss=(dereal>=T.t_dereal||numb>=T.t_numb||gap>=T.t_gap);
- if(adhd&&!diss)return{type:"ADHD",why:"Distract/restless high, dereal low, short gap"}
- if(diss&&!adhd)return{type:"Dissociation",why:"Dereal/numb high or long gap"}
- return{type:"Mixed",why:"Signals overlap"}}
-let data=loadAll(),T=loadT();
-function render(){const tb=document.getElementById("rows");tb.innerHTML="";
- data.forEach(e=>{const tr=document.createElement("tr");
- tr.innerHTML=`<td>${e.dt}</td><td>${e.context}</td><td>${e.type}</td><td>${e.why}</td>`;
- tb.appendChild(tr)}); renderWeek()}
-function renderWeek(){const out=document.getElementById("weekSummary");
- const now=Date.now(),wk=now-7*86400000;const arr=data.filter(e=>new Date(e.dt).getTime()>=wk);
- const c={ADHD:0,Dissociation:0,Mixed:0};arr.forEach(e=>c[e.type]++);
- out.textContent=`Entries: ${arr.length} | ADHD:${c.ADHD} Dissoc:${c.Dissociation} Mixed:${c.Mixed}`}
-document.getElementById("entryForm").onsubmit=ev=>{
- ev.preventDefault();const e={id:crypto.randomUUID(),dt:document.getElementById("dt").value,
- context:context.value,triggers:triggers.value,notes:notes.value,
- extDistract:extDistract.value,dereal:dereal.value,gap:gap.value,restless:restless.value,numbness:numbness.value};
- const c=classify(e,T);e.type=c.type;e.why=c.why;data.push(e);saveAll(data);render()};
-document.getElementById("classify").onclick=()=>{const e={extDistract:extDistract.value,dereal:dereal.value,gap:gap.value,restless:restless.value,numbness:numbness.value};
- const c=classify(e,T);classResult.textContent=`${c.type} — ${c.why}`}
-document.getElementById("saveThresholds").onclick=()=>{T={t_ext:+t_ext.value,t_rest:+t_rest.value,t_dereal_max:+t_dereal_max.value,t_gap_max:+t_gap_max.value,t_dereal:+t_dereal.value,t_numb:+t_numb.value,t_gap:+t_gap.value};saveT(T)}
-document.getElementById("genNotes").onclick=()=>{notesOut.value=`Weekly: ${weekSummary.textContent}`}
-render();
-</script>
+        <div class="grid-2">
+          <label class="block"><span class="kpi">Perceived trigger(s)</span><input id="triggers" type="text" placeholder="e.g., noise, conflict, deadline, memory cue" class="input w-full"/></label>
+          <label class="block"><span class="kpi">Tags (comma-separated)</span><input id="tags" type="text" placeholder="e.g., masking, mirror, Petunia" class="input w-full"/></label>
+        </div>
+
+        <div class="grid-3">
+          <label class="block"><span class="kpi">Attention pulled by external stimuli</span><input id="extDistract" type="range" min="0" max="10" value="0" class="w-full"><div class="text-xs text-zinc-500 mt-1">0 none · 10 extreme</div></label>
+          <label class="block"><span class="kpi">Sense of unreality / detachment</span><input id="dereal" type="range" min="0" max="10" value="0" class="w-full"><div class="text-xs text-zinc-500 mt-1">0 none · 10 strong</div></label>
+          <label class="block"><span class="kpi">Memory gap length (minutes)</span><input id="gap" type="number" step="1" min="0" max="600" placeholder="0" class="input w-full"/></label>
+        </div>
+
+        <div class="grid-3">
+          <label class="block"><span class="kpi">Hypervigilance / startle</span><input id="hypervigilance" type="range" min="0" max="10" value="0" class="w-full"></label>
+          <label class="block"><span class="kpi">Body numbness / shutdown</span><input id="numbness" type="range" min="0" max="10" value="0" class="w-full"></label>
+          <label class="block"><span class="kpi">Restlessness / fidgeting</span><input id="restless" type="range" min="0" max="10" value="0" class="w-full"></label>
+        </div>
+
+        <div class="grid-2">
+          <label class="block"><span class="kpi">Emotion intensity</span><input id="emotion" type="range" min="0" max="10" value="0" class="w-full"><div class="text-xs text-zinc-500 mt-1">0 flat · 10 overwhelming</div></label>
+          <label class="block"><span class="kpi">Trigger trauma-related?</span>
+            <select id="traumaRelated" class="input w-full"><option value="unknown" selected>Unknown/unsure</option><option value="no">No</option><option value="yes">Yes</option></select>
+          </label>
+        </div>
+
+        <!-- Therapy-focused fields -->
+        <div class="card p-3">
+          <div class="kpi mb-2">Therapy-focused details</div>
+          <div class="grid-3">
+            <div>
+              <div class="kpi mb-1">Primary emotions</div>
+              <div class="flex flex-wrap gap-2 text-sm" id="emotionChips">
+                <!-- generated -->
+              </div>
+            </div>
+            <div>
+              <div class="kpi mb-1">Body sensations</div>
+              <div class="flex flex-wrap gap-2 text-sm" id="bodyChips"></div>
+            </div>
+            <div>
+              <div class="kpi mb-1">Relational impact</div>
+              <select id="relational" class="input w-full">
+                <option value="none" selected>No notable impact</option>
+                <option value="missed">Missed cues / detached</option>
+                <option value="withdrew">Withdrew / avoided</option>
+                <option value="blurt">Blurted / interrupted</option>
+                <option value="conflict">Conflict escalated</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2 mt-3">
+            <div>
+              <div class="kpi mb-1">Grounding used</div>
+              <div class="flex flex-wrap gap-2 text-sm" id="groundingChips"></div>
+            </div>
+            <label class="block"><span class="kpi">Grounding effectiveness</span><input id="groundingEff" type="range" min="0" max="10" value="0" class="w-full"><div class="text-xs text-zinc-500 mt-1">0 none · 10 very effective</div></label>
+          </div>
+        </div>
+
+        <label class="block"><span class="kpi">Notes</span><textarea id="notes" rows="4" placeholder="What happened, what you noticed, what helped…" class="input w-full"></textarea></label>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" id="classify" class="btn">Classify</button>
+          <button type="submit" class="btn-primary">Save entry</button>
+          <span id="classResult" class="ml-2 text-sm"></span>
+        </div>
+      </form>
+    </section>
+
+    <!-- Settings + Safety + Weekly summary -->
+    <aside class="space-y-6">
+      <section class="card p-4 sm:p-6">
+        <h2 class="text-lg font-semibold">Classifier thresholds</h2>
+        <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Tune rules (saved to this browser).</p>
+        <div class="mt-3 grid grid-cols-2 gap-3">
+          <label class="kpi">ADHD: ext. distraction ≥ <input id="t_ext" type="number" min="0" max="10" step="1" class="input"></label>
+          <label class="kpi">ADHD: restlessness ≥ <input id="t_rest" type="number" min="0" max="10" step="1" class="input"></label>
+          <label class="kpi">ADHD: derealization ≤ <input id="t_dereal_max" type="number" min="0" max="10" step="1" class="input"></label>
+          <label class="kpi">ADHD: memory gap ≤ (min) <input id="t_gap_max" type="number" min="0" max="600" step="1" class="input"></label>
+          <label class="kpi">Dissoc: derealization ≥ <input id="t_dereal" type="number" min="0" max="10" step="1" class="input"></label>
+          <label class="kpi">Dissoc: numbness ≥ <input id="t_numb" type="number" min="0" max="10" step="1" class="input"></label>
+          <label class="kpi">Dissoc: memory gap ≥ (min) <input id="t_gap" type="number" min="0" max="600" step="1" class="input"></label>
+        </div>
+        <div class="flex gap-2 mt-3"><button id="saveThresholds" class="btn-primary">Save</button><button id="resetThresholds" class="btn">Reset</button></div>
+      </section>
+
+      <section class="card p-4 sm:p-6">
+        <h2 class="text-lg font-semibold">Quick safety / grounding</h2>
+        <p class="text-sm text-zinc-600 dark:text-zinc-400">Press to reveal scripts when needed.</p>
+        <div class="grid gap-2 mt-3">
+          <button class="btn" data-script="54321">5–4–3–2–1 Senses</button>
+          <button class="btn" data-script="breath">Box breathing 4×4×4×4</button>
+          <button class="btn" data-script="orient">Orientation (name, date, place)</button>
+        </div>
+        <textarea id="scriptBox" class="input w-full mt-3" rows="5" placeholder="Selected script appears here."></textarea>
+      </section>
+
+      <section class="card p-4 sm:p-6">
+        <h2 class="text-lg font-semibold">Weekly summary</h2>
+        <div id="weekSummary" class="mt-2 text-sm space-y-2"></div>
+        <button id="genNotes" class="btn mt-3">Generate therapy notes</button>
+        <textarea id="notesOut" class="input mt-2 w-full" rows="8" placeholder="Summary text for therapy / journaling"></textarea>
+      </section>
+    </aside>
+
+    <!-- Log -->
+    <section class="card p-4 sm:p-6 lg:col-span-3">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <h2 class="text-lg font-semibold">Your log</h2>
+        <div class="flex items-center gap-2">
+          <input id="search" type="text" placeholder="Search notes/tags/context…" class="input w-56">
+          <select id="filterType" class="input">
+            <option value="all">All types</option>
+            <option value="ADHD">Likely ADHD</option>
+            <option value="Dissociation">Likely Dissociation</option>
+            <option value="Mixed">Mixed/Unclear</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto mt-4">
+        <table class="min-w-full text-sm">
+          <thead class="text-zinc-500">
+            <tr>
+              <th class="text-left p-2">When</th>
+              <th class="text-left p-2">Context</th>
+              <th class="text-left p-2">Type</th>
+              <th class="text-left p-2">Signals</th>
+              <th class="text-left p-2">Emotions</th>
+              <th class="text-left p-2">Grounding</th>
+              <th class="text-left p-2">Tags</th>
+              <th class="text-left p-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="max-w-7xl mx-auto p-6 text-xs text-zinc-500">
+    <p>Privacy note: Data never leaves your device unless you export it. If you host on GitHub Pages, each visitor’s entries remain in their own browser storage.</p>
+  </footer>
+
+  <script>
+    // ---------- Utilities & constants ----------
+    const $ = (id) => document.getElementById(id);
+    const LS_KEY = 'adhd_dissoc_log_v2';
+    const LS_THRESH = 'adhd_dissoc_thresholds_v2';
+
+    const EMOTIONS = ['calm','sad','angry','afraid','ashamed','guilty','numb','overwhelmed','confused','lonely','relieved','hopeful'];
+    const BODY = ['numbness','tingling','tight chest','heart racing','dizzy/lightheaded','GI upset','shaky','cold/hot','headache'];
+    const GROUNDING = ['5-4-3-2-1 senses','box breathing','paced breathing','cold water / ice','movement','container imagery','safe place','orienting statements'];
+
+    function chipset(containerId, items){
+      const el = $(containerId); el.innerHTML = '';
+      items.forEach((name) => {
+        const id = `${containerId}_${name.replace(/\W+/g,'_')}`;
+        const lbl = document.createElement('label');
+        lbl.className = 'inline-flex items-center gap-1 border px-2 py-1 rounded-lg text-xs';
+        lbl.innerHTML = `<input type=\"checkbox\" id=\"${id}\" value=\"${name}\"> ${name}`;
+        el.appendChild(lbl);
+      });
+    }
+
+    function getChecked(containerId){
+      return Array.from($(containerId).querySelectorAll('input[type=checkbox]:checked')).map(i=>i.value);
+    }
+
+    function nowLocalDatetime(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+    function loadAll(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; } }
+    function saveAll(list){ localStorage.setItem(LS_KEY, JSON.stringify(list)); }
+
+    function defaultThresholds(){ return { t_ext:6, t_rest:6, t_dereal_max:3, t_gap_max:2, t_dereal:6, t_numb:6, t_gap:10 }; }
+    function loadThresholds(){ try { return { ...defaultThresholds(), ...(JSON.parse(localStorage.getItem(LS_THRESH))||{}) }; } catch { return defaultThresholds(); } }
+    function saveThresholds(obj){ localStorage.setItem(LS_THRESH, JSON.stringify(obj)); }
+
+    function classifyEntry(e, T){
+      const ext=+e.extDistract||0, dereal=+e.dereal||0, gap=+e.gap||0, numb=+e.numbness||0, rest=+e.restless||0; const trauma=e.traumaRelated||'unknown';
+      const likelyADHD = (ext>=T.t_ext || rest>=T.t_rest) && dereal<=T.t_dereal_max && gap<=T.t_gap_max && trauma!=='yes';
+      const likelyDissoc = (dereal>=T.t_dereal || numb>=T.t_numb || gap>=T.t_gap || trauma==='yes');
+      if (likelyADHD && !likelyDissoc) return { type:'ADHD', why:`High ext/rest; low dereal; short gap; non-trauma.` };
+      if (likelyDissoc && !likelyADHD) return { type:'Dissociation', why:`High dereal/numb or long gap or trauma.` };
+      return { type:'Mixed', why:`Signals overlap/ambiguous.` };
+    }
+
+    // ---------- State ----------
+    let data = loadAll();
+    let T = loadThresholds();
+
+    // Set defaults & chips
+    $('dt').value = nowLocalDatetime();
+    chipset('emotionChips', EMOTIONS);
+    chipset('bodyChips', BODY);
+    chipset('groundingChips', GROUNDING);
+
+    // Threshold inputs
+    function initTInputs(){ $('t_ext').value=T.t_ext; $('t_rest').value=T.t_rest; $('t_dereal_max').value=T.t_dereal_max; $('t_gap_max').value=T.t_gap_max; $('t_dereal').value=T.t_dereal; $('t_numb').value=T.t_numb; $('t_gap').value=T.t_gap; }
+    initTInputs();
+
+    // ---------- Render ----------
+    function render(){
+      const tbody = $('rows'); tbody.innerHTML='';
+      const q = $('search').value.trim().toLowerCase(); const f = $('filterType').value;
+      const filtered = data.filter(e=>{ const txt=`${e.context} ${e.notes} ${(e.tags||[]).join(' ')} ${e.type} ${(e.emotions||[]).join(' ')} ${(e.groundingUsed||[]).join(' ')}`.toLowerCase(); const mQ=!q||txt.includes(q); const mT=(f==='all')||(e.type===f); return mQ && mT; }).sort((a,b)=>(b.dt||'').localeCompare(a.dt||''));
+
+      for (const e of filtered){
+        const tr = document.createElement('tr'); tr.className='border-t border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50/40 dark:hover:bg-zinc-800/30';
+        const ksig = [`ext:${e.extDistract}`,`dereal:${e.dereal}`,`gap:${e.gap}m`,`rest:${e.restless}`,`numb:${e.numbness}`,(e.traumaRelated==='yes'?'trauma✓':(e.traumaRelated==='no'?'trauma×':'trauma?'))].join(' · ');
+        tr.innerHTML = `
+          <td class='p-2 align-top'>${(e.dt||'').replace('T',' ')}</td>
+          <td class='p-2 align-top'>${e.context||''}${e.part?`<div class='text-xs text-zinc-500'>Part: ${e.part}</div>`:''}</td>
+          <td class='p-2 align-top'>
+            <span class='pill ${e.type==='ADHD'?'bg-green-50 border-green-300 text-green-700 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700': e.type==='Dissociation'?'bg-purple-50 border-purple-300 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700':'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-700'}'>${e.type}</span>
+            <div class='text-xs text-zinc-500 mt-1'>${e.why||''}</div>
+          </td>
+          <td class='p-2 align-top text-zinc-600 dark:text-zinc-300'>${ksig}</td>
+          <td class='p-2 align-top'>${(e.emotions||[]).map(t=>`<span class='tag mr-1'>${t}</span>`).join('')}</td>
+          <td class='p-2 align-top'>${(e.groundingUsed||[]).map(t=>`<span class='tag mr-1'>${t}</span>`).join('')}<div class='text-xs text-zinc-500'>eff:${e.groundingEff??'-'}</div></td>
+          <td class='p-2 align-top'>${(e.tags||[]).map(t=>`<span class='tag mr-1'>${t}</span>`).join('')}</td>
+          <td class='p-2 align-top'>
+            <button class='btn text-xs' data-act='view' data-id='${e.id}'>View</button>
+            <button class='btn text-xs' data-act='edit' data-id='${e.id}'>Edit</button>
+            <button class='btn text-xs text-red-600 border-red-300 dark:border-red-700' data-act='del' data-id='${e.id}'>Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      }
+      renderWeek();
+    }
+
+    function renderWeek(){
+      const out=$('weekSummary'); const now=Date.now(); const weekAgo = now - 7*24*3600*1000;
+      const week = data.filter(e => new Date(e.dt).getTime() >= weekAgo);
+      const total = week.length; const counts={ADHD:0,Dissociation:0,Mixed:0};
+      let avgExt=0, avgRest=0, avgDereal=0, avgGap=0, avgEff=0;
+      const triggers={}; const emo={}; const bodyMap={}; const groundingCount={};
+      for(const e of week){
+        counts[e.type]=(counts[e.type]||0)+1;
+        avgExt += (+e.extDistract||0); avgRest += (+e.restless||0); avgDereal += (+e.dereal||0); avgGap += (+e.gap||0); avgEff += (+e.groundingEff||0);
+        String(e.triggers||'').split(/[,;]+/).map(s=>s.trim().toLowerCase()).filter(Boolean).forEach(t=>triggers[t]=(triggers[t]||0)+1);
+        (e.emotions||[]).forEach(t=>emo[t]=(emo[t]||0)+1);
+        (e.body||[]).forEach(t=>bodyMap[t]=(bodyMap[t]||0)+1);
+        (e.groundingUsed||[]).forEach(t=>groundingCount[t]=(groundingCount[t]||0)+1);
+      }
+      const denom = Math.max(total,1);
+      function topN(obj,n=5){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([k,v])=>`<span class='tag mr-1'>${k} ×${v}</span>`).join(' ')}
+      out.innerHTML = total ? `
+        <div class='grid grid-cols-3 gap-3'>
+          <div class='card p-3'><div class='kpi'>Total entries</div><div class='text-2xl font-semibold'>${total}</div></div>
+          <div class='card p-3'><div class='kpi'>ADHD / Dissoc / Mixed</div><div class='text-lg'>${counts.ADHD||0} / ${counts.Dissociation||0} / ${counts.Mixed||0}</div></div>
+          <div class='card p-3'><div class='kpi'>Avg grounding eff.</div><div class='text-lg'>${(avgEff/denom).toFixed(1)}</div></div>
+        </div>
+        <div class='grid grid-cols-4 gap-3 mt-3'>
+          <div class='card p-3'><div class='kpi'>Avg ext. distract</div><div class='text-lg'>${(avgExt/denom).toFixed(1)}</div></div>
+          <div class='card p-3'><div class='kpi'>Avg restlessness</div><div class='text-lg'>${(avgRest/denom).toFixed(1)}</div></div>
+          <div class='card p-3'><div class='kpi'>Avg derealization</div><div class='text-lg'>${(avgDereal/denom).toFixed(1)}</div></div>
+          <div class='card p-3'><div class='kpi'>Avg gap (min)</div><div class='text-lg'>${(avgGap/denom).toFixed(0)}</div></div>
+        </div>
+        <div class='mt-3'><div class='kpi'>Top triggers</div><div class='mt-1'>${topN(triggers) || '<span class="text-zinc-500">(none)</span>'}</div></div>
+        <div class='mt-2'><div class='kpi'>Top emotions</div><div class='mt-1'>${topN(emo) || '<span class="text-zinc-500">(none)</span>'}</div></div>
+        <div class='mt-2'><div class='kpi'>Top body sensations</div><div class='mt-1'>${topN(bodyMap) || '<span class="text-zinc-500">(none)</span>'}</div></div>
+        <div class='mt-2'><div class='kpi'>Grounding most used</div><div class='mt-1'>${topN(groundingCount) || '<span class="text-zinc-500">(none)</span>'}</div></div>
+      ` : `<div class='text-zinc-500'>No entries in the last 7 days.</div>`;
+    }
+
+    // ---------- Form interactions ----------
+    $('classify').addEventListener('click', (ev)=>{
+      ev.preventDefault(); const e=getFormEntry(false); const c=classifyEntry(e, T); $('classResult').textContent=`${c.type} — ${c.why}`;
+    });
+
+    $('entryForm').addEventListener('submit', (ev)=>{
+      ev.preventDefault(); const entry=getFormEntry(true); const c=classifyEntry(entry, T); entry.type=c.type; entry.why=c.why; data.push(entry); saveAll(data); $('classResult').textContent=`${entry.type} — saved.`; ev.target.reset(); $('dt').value=nowLocalDatetime(); chipset('emotionChips', EMOTIONS); chipset('bodyChips', BODY); chipset('groundingChips', GROUNDING); render();
+    });
+
+    function getFormEntry(includeSelections){
+      const tags = $('tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+      const o = {
+        id: crypto.randomUUID(), dt: $('dt').value, context: $('context').value, part: $('part').value,
+        triggers: $('triggers').value, tags,
+        extDistract: +$('extDistract').value, dereal: +$('dereal').value, gap: +$('gap').value,
+        hypervigilance: +$('hypervigilance').value, numbness: +$('numbness').value, restless: +$('restless').value,
+        emotion: +$('emotion').value, traumaRelated: $('traumaRelated').value,
+        relational: $('relational').value, groundingEff: +$('groundingEff').value,
+        notes: $('notes').value
+      };
+      if(includeSelections){ o.emotions = getChecked('emotionChips'); o.body = getChecked('bodyChips'); o.groundingUsed = getChecked('groundingChips'); }
+      return o;
+    }
+
+    // Table actions
+    $('rows').addEventListener('click', (ev)=>{
+      const btn = ev.target.closest('button'); if(!btn) return; const id = btn.getAttribute('data-id'); const act = btn.getAttribute('data-act'); const idx = data.findIndex(x=>x.id===id); if(idx===-1) return; const e=data[idx];
+      if(act==='del'){ if(confirm('Delete this entry?')){ data.splice(idx,1); saveAll(data); render(); } }
+      if(act==='view'){
+        alert(`When: ${e.dt}\nType: ${e.type}\nWhy: ${e.why}\nContext: ${e.context}\nPart: ${e.part||''}\nSignals: ext=${e.extDistract}, dereal=${e.dereal}, gap=${e.gap}m, numb=${e.numbness}, rest=${e.restless}\nTrauma-related: ${e.traumaRelated}\nEmotions: ${(e.emotions||[]).join(', ')}\nBody: ${(e.body||[]).join(', ')}\nGrounding: ${(e.groundingUsed||[]).join(', ')} (eff ${e.groundingEff})\nRelational: ${e.relational}\nTriggers: ${e.triggers}\nTags: ${(e.tags||[]).join(', ')}\n\nNotes:\n${e.notes}`);
+      }
+      if(act==='edit'){
+        $('dt').value=e.dt; $('context').value=e.context; $('part').value=e.part||''; $('triggers').value=e.triggers||''; $('tags').value=(e.tags||[]).join(', ');
+        $('extDistract').value=e.extDistract; $('dereal').value=e.dereal; $('gap').value=e.gap; $('hypervigilance').value=e.hypervigilance; $('numbness').value=e.numbness; $('restless').value=e.restless; $('emotion').value=e.emotion; $('traumaRelated').value=e.traumaRelated; $('relational').value=e.relational; $('groundingEff').value=e.groundingEff; $('notes').value=e.notes||'';
+        chipset('emotionChips', EMOTIONS); chipset('bodyChips', BODY); chipset('groundingChips', GROUNDING);
+        (e.emotions||[]).forEach(v=>{ const id=`emotionChips_${v.replace(/\W+/g,'_')}`; const box=$(id); if(box) box.checked=true; });
+        (e.body||[]).forEach(v=>{ const id=`bodyChips_${v.replace(/\W+/g,'_')}`; const box=$(id); if(box) box.checked=true; });
+        (e.groundingUsed||[]).forEach(v=>{ const id=`groundingChips_${v.replace(/\W+/g,'_')}`; const box=$(id); if(box) box.checked=true; });
+        data.splice(idx,1); saveAll(data); render(); window.scrollTo({top:0,behavior:'smooth'}); $('classResult').textContent='Editing existing entry — re-classify & save to update';
+      }
+    });
+
+    // Threshold events
+    $('saveThresholds').addEventListener('click', ()=>{ T={ t_ext:+$('t_ext').value, t_rest:+$('t_rest').value, t_dereal_max:+$('t_dereal_max').value, t_gap_max:+$('t_gap_max').value, t_dereal:+$('t_dereal').value, t_numb:+$('t_numb').value, t_gap:+$('t_gap').value }; saveThresholds(T); render(); });
+    $('resetThresholds').addEventListener('click', ()=>{ T=defaultThresholds(); saveThresholds(T); initTInputs(); render(); });
+
+    // Safety/grounding scripts
+    const SCRIPTS={
+      '54321': '5-4-3-2-1 Senses\n• 5 things you see\n• 4 things you feel\n• 3 things you hear\n• 2 things you smell\n• 1 thing you taste\nSlow your breath as you list each one.',
+      'breath': 'Box Breathing\nInhale 4 • Hold 4 • Exhale 4 • Hold 4\nRepeat for 1–3 minutes. Soften shoulders/jaw.',
+      'orient': 'Orientation\nMy name is ____. Today is ____. I am in ____. I am safe in this moment. I can feel the chair beneath me and the ground under my feet.'
+    };
+    document.querySelectorAll('[data-script]').forEach(btn=>btn.addEventListener('click',()=>{ const key=btn.getAttribute('data-script'); $('scriptBox').value=SCRIPTS[key]||''; }));
+
+    // Weekly therapy notes generator
+    $('genNotes').addEventListener('click', ()=>{
+      const now=Date.now(); const weekAgo=now-7*24*3600*1000; const week=data.filter(e=> new Date(e.dt).getTime()>=weekAgo);
+      if(!week.length){ $('notesOut').value='No entries in the last 7 days.'; return; }
+      const counts={ADHD:0,Dissociation:0,Mixed:0}; let min=Infinity,max=0; const trig={}, emo={}, body={}, ground={}; let eff=0;
+      for(const e of week){ counts[e.type]++; const t=new Date(e.dt).getTime(); min=Math.min(min,t); max=Math.max(max,t); eff+= (+e.groundingEff||0);
+        String(e.triggers||'').split(/[,;]+/).map(s=>s.trim().toLowerCase()).filter(Boolean).forEach(v=>trig[v]=(trig[v]||0)+1);
+        (e.emotions||[]).forEach(v=>emo[v]=(emo[v]||0)+1);
+        (e.body||[]).forEach(v=>body[v]=(body[v]||0)+1);
+        (e.groundingUsed||[]).forEach(v=>ground[v]=(ground[v]||0)+1);
+      }
+      function top(obj){ return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k}×${v}`).join(', ') || '—'; }
+      const fmt=d=> new Date(d).toLocaleDateString()+" "+new Date(d).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      const lines=[
+        `Week range: ${fmt(min)} — ${fmt(max)}`,
+        `Counts: ADHD ${counts.ADHD||0} • Dissociation ${counts.Dissociation||0} • Mixed ${counts.Mixed||0}`,
+        `Top triggers: ${top(trig)}`,
+        `Top emotions: ${top(emo)}`,
+        `Top body sensations: ${top(body)}`,
+        `Most-used grounding: ${top(ground)} (avg eff ${(eff/Math.max(week.length,1)).toFixed(1)})`,
+        `Notes highlights: (paste key notes here if desired)`
+      ];
+      $('notesOut').value = lines.join('\n');
+    });
+
+    // Export/Import
+    $('exportJson').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='adhd-dissociation-log.json'; a.click(); URL.revokeObjectURL(url); });
+    $('exportCsv').addEventListener('click', ()=>{
+      if(!data.length) return alert('No entries to export.');
+      const headers = Object.keys(data[0]); const esc=v=> '"'+String(v??'').replaceAll('"','""')+'"';
+      const lines = [headers.map(esc).join(',')];
+      for(const r of data){ lines.push(headers.map(h=>esc(r[h])).join(',')); }
+      const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='adhd-dissociation-log.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+    $('importFile').addEventListener('change', (ev)=>{ const file=ev.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ try { const arr=JSON.parse(reader.result); if(!Array.isArray(arr)) throw new Error('Invalid JSON array'); data=arr.map(x=>({...x, id:x.id||crypto.randomUUID()})); saveAll(data); render(); alert('Import complete.'); } catch(e){ alert('Import failed: '+e.message); } }; reader.readAsText(file); ev.target.value=''; });
+
+    // Initial render
+    render();
+  </script>
 </body>
 </html>
